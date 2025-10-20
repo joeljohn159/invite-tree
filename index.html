@@ -7,7 +7,6 @@
     google.charts.load('current', {packages:["orgchart"]});
     google.charts.setOnLoadCallback(drawChart);
 
-    // Your published CSV link here
     const sheetUrl = 'YOUR_CSV_LINK_HERE';
 
     async function drawChart() {
@@ -15,21 +14,24 @@
       const text = await response.text();
       const rows = text.trim().split('\n').map(r => r.split(',').slice(0,2));
 
-      // Build tree structure
+      // Build tree mapping: parent -> children
       const tree = {};
       const allUsers = new Set();
 
       rows.forEach(([inviter, invitee]) => {
         allUsers.add(inviter);
         allUsers.add(invitee);
-
         if (!tree[inviter]) tree[inviter] = [];
         tree[inviter].push(invitee);
-
-        if (!tree[invitee]) tree[invitee] = [];
+        if (!tree[invitee]) tree[invitee] = []; // ensure every node exists
       });
 
-      // Recursive total under each user
+      // Find the root (user who was never invited)
+      const invitees = new Set(rows.map(r => r[1]));
+      const roots = [...allUsers].filter(u => !invitees.has(u));
+      const root = roots.length ? roots[0] : [...allUsers][0];
+
+      // Recursive function to calculate totals
       const totals = {};
       function countUnder(person) {
         if (totals[person] !== undefined) return totals[person];
@@ -40,32 +42,28 @@
         totals[person] = total;
         return total;
       }
+      countUnder(root);
 
-      Object.keys(tree).forEach(person => countUnder(person));
-
-      // Prepare Google OrgChart data
+      // Prepare OrgChart data
       const data = new google.visualization.DataTable();
       data.addColumn('string','Name');
       data.addColumn('string','Manager');
       data.addColumn('string','Tooltip');
 
-      rows.forEach(([inviter, invitee]) => {
-        data.addRow([`${invitee} (${totals[invitee]} 👤)`, inviter, `${inviter} invited ${invitee}`]);
-      });
+      function addToChart(person, parent) {
+        data.addRow([`${person} (${totals[person]} 👤)`, parent, parent ? `${parent} invited ${person}` : 'root']);
+        tree[person].forEach(child => addToChart(child, person));
+      }
 
-      // Find root nodes (people who were never invited)
-      const allInvitees = new Set(rows.map(r=>r[1]));
-      const roots = [...new Set(rows.map(r=>r[0]))].filter(p=>!allInvitees.has(p));
-      roots.forEach(root => data.addRow([`${root} (${totals[root]} 👤)`, '', 'root']));
+      addToChart(root, '');
 
       const chart = new google.visualization.OrgChart(document.getElementById('chart_div'));
       chart.draw(data,{allowHtml:true});
 
-      // Show total unique users
+      // Total unique users
       document.getElementById('total_users').innerText = `Total unique users: ${allUsers.size} 👤`;
     }
 
-    // Auto-refresh every 30s
     setInterval(drawChart,30000);
   </script>
 </head>
