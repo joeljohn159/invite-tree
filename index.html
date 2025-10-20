@@ -7,7 +7,6 @@
     google.charts.load('current', { packages:["orgchart"] });
     google.charts.setOnLoadCallback(drawChart);
 
-    // Replace this with your published Google Sheet CSV link
     const sheetUrl = 'YOUR_CSV_LINK_HERE';
 
     async function drawChart() {
@@ -15,79 +14,72 @@
         const response = await fetch(sheetUrl);
         const text = await response.text();
 
-        // Parse CSV, skip header, trim spaces
+        // Parse CSV: skip header, trim spaces, remove empty rows
         const rows = text.trim()
-                         .split('\n')
-                         .slice(1)
-                         .map(r => r.split(',').map(s => s.trim()).slice(0,2));
+          .split('\n')
+          .slice(1)
+          .map(r => r.split(',').map(s => s.trim()))
+          .filter(r => r[0] && r[1]);
 
-        // Build tree mapping and unique users set
+        // Build tree
         const tree = {};
         const allUsers = new Set();
-
         rows.forEach(([inviter, invitee]) => {
           allUsers.add(inviter);
           allUsers.add(invitee);
-
           if (!tree[inviter]) tree[inviter] = [];
           tree[inviter].push(invitee);
-
-          if (!tree[invitee]) tree[invitee] = []; // ensure every node exists
+          if (!tree[invitee]) tree[invitee] = [];
         });
 
-        // Find the root (user who was never invited)
-        const invitees = new Set(rows.map(r => r[1]));
-        const inviters = new Set(rows.map(r => r[0]));
+        // Find root
+        const invitees = new Set(rows.map(r=>r[1]));
+        const inviters = new Set(rows.map(r=>r[0]));
         const roots = [...inviters].filter(u => !invitees.has(u));
         const root = roots.length ? roots[0] : [...inviters][0];
 
-        // Recursive function to calculate total under each user
+        // Recursive totals
         const totals = {};
         function countUnder(person) {
           if (totals[person] !== undefined) return totals[person];
           let total = 0;
-          tree[person].forEach(child => {
-            total += 1 + countUnder(child);
-          });
+          tree[person].forEach(child => total += 1 + countUnder(child));
           totals[person] = total;
           return total;
         }
         countUnder(root);
 
-        // Prepare Google OrgChart data
+        // Prepare chart data
         const data = new google.visualization.DataTable();
-        data.addColumn('string', 'Name');
-        data.addColumn('string', 'Manager');
-        data.addColumn('string', 'Tooltip');
+        data.addColumn('string','Name');
+        data.addColumn('string','Manager');
+        data.addColumn('string','Tooltip');
 
         function addToChart(person, parent) {
-          if (!person) return; // skip undefined
+          if (!person) return;
           data.addRow([`${person} (${totals[person]} 👤)`, parent, parent ? `${parent} invited ${person}` : 'root']);
           tree[person].forEach(child => addToChart(child, person));
         }
 
         addToChart(root, '');
 
-        // Draw the chart
         const chart = new google.visualization.OrgChart(document.getElementById('chart_div'));
         chart.draw(data, { allowHtml: true });
 
-        // Show total unique users
         document.getElementById('total_users').innerText = `Total unique users: ${allUsers.size} 👤`;
 
       } catch (err) {
-        console.error('Error loading or parsing CSV:', err);
-        document.getElementById('chart_div').innerText = 'Error loading data. Check your CSV link.';
+        console.error(err);
+        document.getElementById('chart_div').innerText = 'Error loading CSV';
       }
     }
 
-    // Auto-refresh every 30 seconds
     setInterval(drawChart, 30000);
   </script>
 </head>
-<body style="font-family:sans-serif; text-align:center;">
+<body style="font-family:sans-serif;text-align:center;">
   <h2>Invite Tree 🌳</h2>
-  <div id="total_users" style="margin-bottom:10px; font-weight:bold;"></div>
+  <div id="total_users" style="margin-bottom:10px;font-weight:bold;"></div>
   <div id="chart_div" style="width:100%; height:800px;"></div>
 </body>
 </html>
