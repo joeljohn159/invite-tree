@@ -1,85 +1,226 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Invite Tree 🌳</title>
-  <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
-  <script>
-    google.charts.load('current', { packages:["orgchart"] });
-    google.charts.setOnLoadCallback(drawChart);
+  <title>Study Hub Invite Tree 🌳</title>
+  <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/vis/4.21.0/vis.min.js"></script>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/vis/4.21.0/vis.min.css" rel="stylesheet" type="text/css" />
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 20px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+    }
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 15px;
+      padding: 30px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    }
+    h1 {
+      text-align: center;
+      color: #667eea;
+      margin-bottom: 10px;
+      font-size: 2.5em;
+    }
+    .stats {
+      text-align: center;
+      margin-bottom: 20px;
+      padding: 15px;
+      background: #f8f9ff;
+      border-radius: 10px;
+      display: flex;
+      justify-content: center;
+      gap: 40px;
+      flex-wrap: wrap;
+    }
+    .stat-item {
+      font-size: 1.2em;
+      color: #555;
+    }
+    .stat-number {
+      font-weight: bold;
+      color: #667eea;
+      font-size: 1.3em;
+    }
+    #mynetwork {
+      width: 100%;
+      height: 700px;
+      border: 2px solid #e0e0e0;
+      border-radius: 10px;
+      background: #fafafa;
+    }
+    .legend {
+      margin-top: 20px;
+      padding: 15px;
+      background: #f8f9ff;
+      border-radius: 10px;
+      text-align: center;
+    }
+    .legend-item {
+      display: inline-block;
+      margin: 0 15px;
+      font-size: 0.9em;
+      color: #666;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🌳 Study Hub Invite Tree</h1>
+    <div class="stats">
+      <div class="stat-item">
+        Total Users: <span class="stat-number" id="total_users">0</span> 👤
+      </div>
+      <div class="stat-item">
+        Root Inviter: <span class="stat-number" id="root_user">-</span>
+      </div>
+    </div>
+    <div id="mynetwork"></div>
+    <div class="legend">
+      <div class="legend-item">💡 Tip: Drag nodes to rearrange | Scroll to zoom | Click and drag background to pan</div>
+    </div>
+  </div>
 
-    const sheetUrl = 'YOUR_CSV_LINK_HERE';
+  <script type="text/javascript">
+    // Your invite data
+    const inviteData = [
+      ['A', 'B'],
+      ['A', 'C'],
+      ['B', 'D'],
+      ['B', 'E'],
+      ['C', 'F'],
+      ['C', 'G'],
+      ['E', 'H'],
+      ['E', 'I'],
+      ['F', 'J']
+    ];
 
-    async function drawChart() {
-      try {
-        const response = await fetch(sheetUrl);
-        const text = await response.text();
+    function buildInviteTree() {
+      // Build tree structure
+      const tree = {};
+      const allUsers = new Set();
+      
+      inviteData.forEach(([inviter, invitee]) => {
+        allUsers.add(inviter);
+        allUsers.add(invitee);
+        if (!tree[inviter]) tree[inviter] = [];
+        tree[inviter].push(invitee);
+      });
 
-        // Parse CSV: skip header, trim spaces, remove empty rows
-        const rows = text.trim()
-          .split('\n')
-          .slice(1)
-          .map(r => r.split(',').map(s => s.trim()))
-          .filter(r => r[0] && r[1]);
+      // Find root (person who wasn't invited by anyone)
+      const invitees = new Set(inviteData.map(r => r[1]));
+      const inviters = new Set(inviteData.map(r => r[0]));
+      const roots = [...inviters].filter(u => !invitees.has(u));
+      const root = roots[0];
 
-        // Build tree
-        const tree = {};
-        const allUsers = new Set();
-        rows.forEach(([inviter, invitee]) => {
-          allUsers.add(inviter);
-          allUsers.add(invitee);
-          if (!tree[inviter]) tree[inviter] = [];
-          tree[inviter].push(invitee);
-          if (!tree[invitee]) tree[invitee] = [];
+      // Calculate totals under each person
+      const totals = {};
+      function countUnder(person) {
+        if (totals[person] !== undefined) return totals[person];
+        if (!tree[person]) {
+          totals[person] = 0;
+          return 0;
+        }
+        let total = 0;
+        tree[person].forEach(child => {
+          total += 1 + countUnder(child);
         });
-
-        // Find root
-        const invitees = new Set(rows.map(r=>r[1]));
-        const inviters = new Set(rows.map(r=>r[0]));
-        const roots = [...inviters].filter(u => !invitees.has(u));
-        const root = roots.length ? roots[0] : [...inviters][0];
-
-        // Recursive totals
-        const totals = {};
-        function countUnder(person) {
-          if (totals[person] !== undefined) return totals[person];
-          let total = 0;
-          tree[person].forEach(child => total += 1 + countUnder(child));
-          totals[person] = total;
-          return total;
-        }
-        countUnder(root);
-
-        // Prepare chart data
-        const data = new google.visualization.DataTable();
-        data.addColumn('string','Name');
-        data.addColumn('string','Manager');
-        data.addColumn('string','Tooltip');
-
-        function addToChart(person, parent) {
-          if (!person) return;
-          data.addRow([`${person} (${totals[person]} 👤)`, parent, parent ? `${parent} invited ${person}` : 'root']);
-          tree[person].forEach(child => addToChart(child, person));
-        }
-
-        addToChart(root, '');
-
-        const chart = new google.visualization.OrgChart(document.getElementById('chart_div'));
-        chart.draw(data, { allowHtml: true });
-
-        document.getElementById('total_users').innerText = `Total unique users: ${allUsers.size} 👤`;
-
-      } catch (err) {
-        console.error(err);
-        document.getElementById('chart_div').innerText = 'Error loading CSV';
+        totals[person] = total;
+        return total;
       }
+      countUnder(root);
+
+      // Update stats
+      document.getElementById('total_users').innerText = allUsers.size;
+      document.getElementById('root_user').innerText = root;
+
+      return { tree, totals, root, allUsers };
     }
 
-    setInterval(drawChart, 30000);
+    function drawNetwork() {
+      const { tree, totals, root, allUsers } = buildInviteTree();
+
+      // Create nodes
+      const nodes = [];
+      allUsers.forEach(user => {
+        const count = totals[user] || 0;
+        nodes.push({
+          id: user,
+          label: `${user}\n(${count} invites)`,
+          level: getLevel(user, tree, root),
+          color: {
+            background: user === root ? '#667eea' : '#764ba2',
+            border: user === root ? '#4c51bf' : '#5a3a7a',
+            highlight: {
+              background: '#fbbf24',
+              border: '#f59e0b'
+            }
+          },
+          font: {
+            color: 'white',
+            size: 16,
+            face: 'Arial'
+          },
+          shape: 'box',
+          margin: 10,
+          borderWidth: 2
+        });
+      });
+
+      // Create edges
+      const edges = [];
+      inviteData.forEach(([inviter, invitee]) => {
+        edges.push({
+          from: inviter,
+          to: invitee,
+          arrows: 'to',
+          color: { color: '#999', highlight: '#667eea' },
+          width: 2,
+          smooth: { type: 'cubicBezier' }
+        });
+      });
+
+      // Create network
+      const container = document.getElementById('mynetwork');
+      const data = { nodes: nodes, edges: edges };
+      const options = {
+        layout: {
+          hierarchical: {
+            direction: 'UD',
+            sortMethod: 'directed',
+            nodeSpacing: 150,
+            levelSeparation: 150
+          }
+        },
+        physics: {
+          enabled: false
+        },
+        interaction: {
+          dragNodes: true,
+          dragView: true,
+          zoomView: true
+        }
+      };
+
+      new vis.Network(container, data, options);
+    }
+
+    function getLevel(user, tree, root, level = 0) {
+      if (user === root) return 0;
+      for (let parent in tree) {
+        if (tree[parent].includes(user)) {
+          return getLevel(parent, tree, root, level) + 1;
+        }
+      }
+      return level;
+    }
+
+    // Draw the network on load
+    drawNetwork();
   </script>
-</head>
-<body style="font-family:sans-serif;text-align:center;">
-  <h2>Invite Tree 🌳</h2>
-  <div id="total_users" style="margin-bottom:10px;font-weight:bold;"></div>
-  <div id="chart_div" style="width:100%; height:800px;"></div>
 </body>
 </html>
