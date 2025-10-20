@@ -1,68 +1,77 @@
 <!DOCTYPE html>
 <html>
-  <head>
-    <title>Invite Tree</title>
-    <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
-    <script>
-      google.charts.load('current', { packages: ["orgchart"] });
-      google.charts.setOnLoadCallback(drawChart);
+<head>
+  <title>Invite Tree</title>
+  <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+  <script>
+    google.charts.load('current', {packages:["orgchart"]});
+    google.charts.setOnLoadCallback(drawChart);
 
-      const sheetUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTufzem3vQrgBLdQZjqOwqybt6OrT8NLt_I4ec5BMx2I_RzXHN0UiSb6LSbrgHSQ3CsTuWZyzW8D2U1/pub?output=csv';
+    // Your published CSV link here
+    const sheetUrl = 'YOUR_CSV_LINK_HERE';
 
+    async function drawChart() {
+      const response = await fetch(sheetUrl);
+      const text = await response.text();
+      const rows = text.trim().split('\n').map(r => r.split(',').slice(0,2));
 
-      async function drawChart() {
-        const response = await fetch(sheetUrl);
-        const text = await response.text();
-        const rows = text.trim().split('\n').map(r => r.split(',').slice(0,2));
+      // Build tree structure
+      const tree = {};
+      const allUsers = new Set();
 
-        const tree = {};
-        const totals = {};
+      rows.forEach(([inviter, invitee]) => {
+        allUsers.add(inviter);
+        allUsers.add(invitee);
 
-        // Build tree structure
-        rows.forEach(([inviter, invitee]) => {
-          if (!tree[inviter]) tree[inviter] = [];
-          tree[inviter].push(invitee);
-          if (!tree[invitee]) tree[invitee] = [];
+        if (!tree[inviter]) tree[inviter] = [];
+        tree[inviter].push(invitee);
+
+        if (!tree[invitee]) tree[invitee] = [];
+      });
+
+      // Recursive total under each user
+      const totals = {};
+      function countUnder(person) {
+        if (totals[person] !== undefined) return totals[person];
+        let total = 0;
+        tree[person].forEach(child => {
+          total += 1 + countUnder(child);
         });
-
-        // Recursive total calculation
-        function countUnder(person) {
-          if (totals[person] !== undefined) return totals[person];
-          let total = 0;
-          tree[person].forEach(child => {
-            total += 1 + countUnder(child);
-          });
-          totals[person] = total;
-          return total;
-        }
-
-        Object.keys(tree).forEach(person => countUnder(person));
-
-        // Prepare data for Google OrgChart
-        const data = new google.visualization.DataTable();
-        data.addColumn('string', 'Name');
-        data.addColumn('string', 'Manager');
-        data.addColumn('string', 'Tooltip');
-
-        rows.forEach(([inviter, invitee]) => {
-          data.addRow([`${invitee} (${totals[invitee]})`, inviter, `${inviter} invited ${invitee}`]);
-        });
-
-        // Add root nodes
-        const allInvitees = new Set(rows.map(r => r[1]));
-        const roots = [...new Set(rows.map(r => r[0]))].filter(p => !allInvitees.has(p));
-        roots.forEach(root => data.addRow([`${root} (${totals[root]})`, '', 'root']));
-
-        const chart = new google.visualization.OrgChart(document.getElementById('chart_div'));
-        chart.draw(data, { allowHtml: true });
+        totals[person] = total;
+        return total;
       }
 
-      setInterval(drawChart, 30000); // auto-refresh every 30s
-    </script>
-  </head>
+      Object.keys(tree).forEach(person => countUnder(person));
 
-  <body style="font-family:sans-serif; text-align:center;">
-    <h2>Invite Tree 🌳</h2>
-    <div id="chart_div" style="width:100%; height:800px;"></div>
-  </body>
+      // Prepare Google OrgChart data
+      const data = new google.visualization.DataTable();
+      data.addColumn('string','Name');
+      data.addColumn('string','Manager');
+      data.addColumn('string','Tooltip');
+
+      rows.forEach(([inviter, invitee]) => {
+        data.addRow([`${invitee} (${totals[invitee]} 👤)`, inviter, `${inviter} invited ${invitee}`]);
+      });
+
+      // Find root nodes (people who were never invited)
+      const allInvitees = new Set(rows.map(r=>r[1]));
+      const roots = [...new Set(rows.map(r=>r[0]))].filter(p=>!allInvitees.has(p));
+      roots.forEach(root => data.addRow([`${root} (${totals[root]} 👤)`, '', 'root']));
+
+      const chart = new google.visualization.OrgChart(document.getElementById('chart_div'));
+      chart.draw(data,{allowHtml:true});
+
+      // Show total unique users
+      document.getElementById('total_users').innerText = `Total unique users: ${allUsers.size} 👤`;
+    }
+
+    // Auto-refresh every 30s
+    setInterval(drawChart,30000);
+  </script>
+</head>
+<body style="font-family:sans-serif;text-align:center;">
+  <h2>Invite Tree 🌳</h2>
+  <div id="total_users" style="margin-bottom:10px;font-weight:bold;"></div>
+  <div id="chart_div" style="width:100%;height:800px;"></div>
+</body>
 </html>
