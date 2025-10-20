@@ -1,92 +1,336 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Study Hub Invite Tree 🌳</title>
+  <title>Study Hub Invite Tree</title>
   <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/vis/4.21.0/vis.min.js"></script>
   <link href="https://cdnjs.cloudflare.com/ajax/libs/vis/4.21.0/vis.min.css" rel="stylesheet" type="text/css" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
-    body {
-      font-family: Arial, sans-serif;
+    * {
       margin: 0;
-      padding: 20px;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      min-height: 100vh;
+      padding: 0;
+      box-sizing: border-box;
     }
+    
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+    
+    .header {
+      max-width: 1400px;
+      margin: 0 auto 30px;
+      text-align: center;
+    }
+    
+    .logo-section {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 15px;
+      margin-bottom: 15px;
+    }
+    
+    .logo {
+      width: 60px;
+      height: 60px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      border-radius: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 32px;
+      box-shadow: 0 4px 20px rgba(102, 126, 234, 0.3);
+    }
+    
+    h1 {
+      font-size: 2.5em;
+      font-weight: 700;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin: 0;
+    }
+    
+    .subtitle {
+      color: #64748b;
+      font-size: 1.1em;
+      font-weight: 500;
+      margin-top: 8px;
+    }
+    
     .container {
       max-width: 1400px;
       margin: 0 auto;
       background: white;
-      border-radius: 15px;
-      padding: 30px;
-      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      border-radius: 24px;
+      padding: 0;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.08);
+      overflow: hidden;
     }
-    h1 {
-      text-align: center;
-      color: #667eea;
-      margin-bottom: 10px;
-      font-size: 2.5em;
+    
+    .stats-bar {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      padding: 30px 40px;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 30px;
     }
-    .stats {
+    
+    .stat-card {
       text-align: center;
-      margin-bottom: 20px;
-      padding: 15px;
-      background: #f8f9ff;
-      border-radius: 10px;
+    }
+    
+    .stat-icon {
+      font-size: 2em;
+      margin-bottom: 8px;
+      filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));
+    }
+    
+    .stat-label {
+      color: rgba(255, 255, 255, 0.9);
+      font-size: 0.9em;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 8px;
+    }
+    
+    .stat-value {
+      color: white;
+      font-size: 2.2em;
+      font-weight: 700;
+      text-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    
+    .content-wrapper {
+      padding: 40px;
+    }
+    
+    .controls {
       display: flex;
-      justify-content: center;
-      gap: 40px;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 25px;
       flex-wrap: wrap;
+      gap: 15px;
     }
-    .stat-item {
-      font-size: 1.2em;
-      color: #555;
+    
+    .view-toggle {
+      display: flex;
+      gap: 10px;
+      background: #f1f5f9;
+      padding: 6px;
+      border-radius: 12px;
     }
-    .stat-number {
-      font-weight: bold;
+    
+    .toggle-btn {
+      padding: 10px 20px;
+      border: none;
+      background: transparent;
+      color: #64748b;
+      font-weight: 600;
+      font-size: 0.9em;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      font-family: 'Inter', sans-serif;
+    }
+    
+    .toggle-btn.active {
+      background: white;
       color: #667eea;
-      font-size: 1.3em;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
     }
+    
+    .search-box {
+      position: relative;
+      flex: 1;
+      max-width: 300px;
+    }
+    
+    .search-box input {
+      width: 100%;
+      padding: 12px 40px 12px 16px;
+      border: 2px solid #e2e8f0;
+      border-radius: 12px;
+      font-size: 0.95em;
+      font-family: 'Inter', sans-serif;
+      transition: all 0.3s ease;
+    }
+    
+    .search-box input:focus {
+      outline: none;
+      border-color: #667eea;
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+    
+    .search-icon {
+      position: absolute;
+      right: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: #94a3b8;
+      font-size: 1.1em;
+    }
+    
     #mynetwork {
       width: 100%;
-      height: 700px;
-      border: 2px solid #e0e0e0;
-      border-radius: 10px;
-      background: #fafafa;
+      height: 650px;
+      border: 2px solid #e2e8f0;
+      border-radius: 16px;
+      background: #fafbfc;
+      position: relative;
     }
+    
     .legend {
-      margin-top: 20px;
-      padding: 15px;
-      background: #f8f9ff;
-      border-radius: 10px;
-      text-align: center;
+      margin-top: 30px;
+      padding: 25px;
+      background: #f8fafc;
+      border-radius: 16px;
+      border: 2px solid #e2e8f0;
     }
+    
+    .legend-title {
+      font-weight: 600;
+      color: #334155;
+      margin-bottom: 15px;
+      font-size: 1.05em;
+    }
+    
+    .legend-items {
+      display: flex;
+      gap: 30px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    
     .legend-item {
-      display: inline-block;
-      margin: 0 15px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: #64748b;
+      font-size: 0.95em;
+    }
+    
+    .legend-color {
+      width: 24px;
+      height: 24px;
+      border-radius: 6px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .color-root {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+    
+    .color-member {
+      background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    }
+    
+    .footer {
+      text-align: center;
+      margin-top: 20px;
+      padding: 20px;
+      color: #94a3b8;
       font-size: 0.9em;
-      color: #666;
+    }
+    
+    @media (max-width: 768px) {
+      body {
+        padding: 15px;
+      }
+      
+      h1 {
+        font-size: 1.8em;
+      }
+      
+      .stats-bar {
+        padding: 20px;
+        gap: 20px;
+      }
+      
+      .content-wrapper {
+        padding: 20px;
+      }
+      
+      #mynetwork {
+        height: 500px;
+      }
     }
   </style>
 </head>
 <body>
-  <div class="container">
-    <h1>🌳 Study Hub Invite Tree</h1>
-    <div class="stats">
-      <div class="stat-item">
-        Total Users: <span class="stat-number" id="total_users">0</span> 👤
+  <div class="header">
+    <div class="logo-section">
+      <div class="logo">📚</div>
+      <div>
+        <h1>Study Hub</h1>
+        <div class="subtitle">Community Growth Tracker</div>
       </div>
-      <div class="stat-item">
-        Root Inviter: <span class="stat-number" id="root_user">-</span>
-      </div>
-    </div>
-    <div id="mynetwork"></div>
-    <div class="legend">
-      <div class="legend-item">💡 Tip: Drag nodes to rearrange | Scroll to zoom | Click and drag background to pan</div>
     </div>
   </div>
 
+  <div class="container">
+    <div class="stats-bar">
+      <div class="stat-card">
+        <div class="stat-icon">👥</div>
+        <div class="stat-label">Total Members</div>
+        <div class="stat-value" id="total_users">0</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">🌟</div>
+        <div class="stat-label">Root Inviter</div>
+        <div class="stat-value" id="root_user" style="font-size: 1.8em;">-</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">🎯</div>
+        <div class="stat-label">Active Trees</div>
+        <div class="stat-value" id="tree_count">0</div>
+      </div>
+    </div>
+
+    <div class="content-wrapper">
+      <div class="controls">
+        <div class="view-toggle">
+          <button class="toggle-btn active" onclick="changeLayout('hierarchical')">Tree View</button>
+          <button class="toggle-btn" onclick="changeLayout('network')">Network View</button>
+        </div>
+        <div class="search-box">
+          <input type="text" id="searchInput" placeholder="Search member..." onkeyup="searchMember()">
+          <span class="search-icon">🔍</span>
+        </div>
+      </div>
+
+      <div id="mynetwork"></div>
+
+      <div class="legend">
+        <div class="legend-title">Legend</div>
+        <div class="legend-items">
+          <div class="legend-item">
+            <div class="legend-color color-root"></div>
+            <span>Root Inviter</span>
+          </div>
+          <div class="legend-item">
+            <div class="legend-color color-member"></div>
+            <span>Community Member</span>
+          </div>
+          <div class="legend-item">
+            <span>💡 Drag nodes • Scroll to zoom • Click to highlight</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer">
+    Built with ❤️ for Study Hub Community
+  </div>
+
   <script type="text/javascript">
-    // Your invite data
     const inviteData = [
       ['A', 'B'],
       ['A', 'C'],
@@ -96,11 +340,14 @@
       ['C', 'G'],
       ['E', 'H'],
       ['E', 'I'],
-      ['F', 'J']
+      ['F', 'J'],
+      ['X', 'Y']
     ];
 
+    let network;
+    let currentLayout = 'hierarchical';
+
     function buildInviteTree() {
-      // Build tree structure
       const tree = {};
       const allUsers = new Set();
       
@@ -111,13 +358,11 @@
         tree[inviter].push(invitee);
       });
 
-      // Find root (person who wasn't invited by anyone)
       const invitees = new Set(inviteData.map(r => r[1]));
       const inviters = new Set(inviteData.map(r => r[0]));
       const roots = [...inviters].filter(u => !invitees.has(u));
-      const root = roots[0];
+      const root = roots.length > 1 ? roots.join(', ') : roots[0];
 
-      // Calculate totals under each person
       const totals = {};
       function countUnder(person) {
         if (totals[person] !== undefined) return totals[person];
@@ -132,29 +377,30 @@
         totals[person] = total;
         return total;
       }
-      countUnder(root);
+      
+      roots.forEach(r => countUnder(r));
 
-      // Update stats
       document.getElementById('total_users').innerText = allUsers.size;
       document.getElementById('root_user').innerText = root;
+      document.getElementById('tree_count').innerText = roots.length;
 
-      return { tree, totals, root, allUsers };
+      return { tree, totals, root, roots, allUsers };
     }
 
     function drawNetwork() {
-      const { tree, totals, root, allUsers } = buildInviteTree();
+      const { tree, totals, roots, allUsers } = buildInviteTree();
 
-      // Create nodes
       const nodes = [];
       allUsers.forEach(user => {
         const count = totals[user] || 0;
+        const isRoot = roots.includes(user);
         nodes.push({
           id: user,
-          label: `${user}\n(${count} invites)`,
-          level: getLevel(user, tree, root),
+          label: `${user}\n${count} invite${count !== 1 ? 's' : ''}`,
+          level: getLevel(user, tree, roots),
           color: {
-            background: user === root ? '#667eea' : '#764ba2',
-            border: user === root ? '#4c51bf' : '#5a3a7a',
+            background: isRoot ? '#667eea' : '#f5576c',
+            border: isRoot ? '#4c51bf' : '#c7254e',
             highlight: {
               background: '#fbbf24',
               border: '#f59e0b'
@@ -162,64 +408,122 @@
           },
           font: {
             color: 'white',
-            size: 16,
-            face: 'Arial'
+            size: 15,
+            face: 'Inter',
+            bold: '600'
           },
           shape: 'box',
-          margin: 10,
-          borderWidth: 2
+          margin: 12,
+          borderWidth: 3,
+          borderWidthSelected: 4,
+          shapeProperties: {
+            borderRadius: 8
+          }
         });
       });
 
-      // Create edges
       const edges = [];
       inviteData.forEach(([inviter, invitee]) => {
         edges.push({
           from: inviter,
           to: invitee,
-          arrows: 'to',
-          color: { color: '#999', highlight: '#667eea' },
-          width: 2,
-          smooth: { type: 'cubicBezier' }
+          arrows: {
+            to: {
+              enabled: true,
+              scaleFactor: 0.8
+            }
+          },
+          color: { 
+            color: '#cbd5e1',
+            highlight: '#667eea'
+          },
+          width: 3,
+          smooth: { 
+            type: 'cubicBezier',
+            roundness: 0.5
+          }
         });
       });
 
-      // Create network
       const container = document.getElementById('mynetwork');
       const data = { nodes: nodes, edges: edges };
       const options = {
         layout: {
           hierarchical: {
+            enabled: currentLayout === 'hierarchical',
             direction: 'UD',
             sortMethod: 'directed',
-            nodeSpacing: 150,
-            levelSeparation: 150
+            nodeSpacing: 180,
+            levelSeparation: 180,
+            treeSpacing: 200
           }
         },
         physics: {
-          enabled: false
+          enabled: currentLayout === 'network',
+          stabilization: {
+            iterations: 200
+          },
+          barnesHut: {
+            gravitationalConstant: -8000,
+            springConstant: 0.04,
+            springLength: 150
+          }
         },
         interaction: {
           dragNodes: true,
           dragView: true,
-          zoomView: true
+          zoomView: true,
+          hover: true,
+          navigationButtons: false
         }
       };
 
-      new vis.Network(container, data, options);
+      network = new vis.Network(container, data, options);
     }
 
-    function getLevel(user, tree, root, level = 0) {
-      if (user === root) return 0;
+    function getLevel(user, tree, roots) {
+      if (roots.includes(user)) return 0;
       for (let parent in tree) {
         if (tree[parent].includes(user)) {
-          return getLevel(parent, tree, root, level) + 1;
+          return getLevel(parent, tree, roots) + 1;
         }
       }
-      return level;
+      return 0;
     }
 
-    // Draw the network on load
+    function changeLayout(layout) {
+      currentLayout = layout;
+      
+      document.querySelectorAll('.toggle-btn').forEach(btn => {
+        btn.classList.remove('active');
+      });
+      event.target.classList.add('active');
+      
+      drawNetwork();
+    }
+
+    function searchMember() {
+      const input = document.getElementById('searchInput').value.toUpperCase();
+      if (!input) {
+        network.unselectAll();
+        return;
+      }
+      
+      const { allUsers } = buildInviteTree();
+      const matches = [...allUsers].filter(u => u.toUpperCase().includes(input));
+      
+      if (matches.length > 0) {
+        network.selectNodes(matches);
+        network.focus(matches[0], {
+          scale: 1.5,
+          animation: {
+            duration: 500,
+            easingFunction: 'easeInOutQuad'
+          }
+        });
+      }
+    }
+
     drawNetwork();
   </script>
 </body>
