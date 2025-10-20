@@ -474,11 +474,68 @@
           dragView: true,
           zoomView: true,
           hover: true,
-          navigationButtons: false
+          navigationButtons: false,
+          zoomSpeed: 0.5
+        },
+        manipulation: {
+          enabled: false
+        },
+        configure: {
+          enabled: false
+        },
+        nodes: {
+          scaling: {
+            min: 10,
+            max: 30
+          }
+        },
+        edges: {
+          scaling: {
+            min: 1,
+            max: 5
+          }
         }
       };
 
       network = new vis.Network(container, data, options);
+      
+      // Limit zoom range
+      network.on("zoom", function() {
+        const scale = network.getScale();
+        if (scale < 0.3) {
+          network.moveTo({ scale: 0.3 });
+        } else if (scale > 2.5) {
+          network.moveTo({ scale: 2.5 });
+        }
+      });
+
+      // Limit drag/pan area to keep tree visible
+      network.on("dragging", function() {
+        const position = network.getViewPosition();
+        const boundaryLimit = 800; // pixels from center
+        
+        let newX = position.x;
+        let newY = position.y;
+        
+        if (position.x < -boundaryLimit) newX = -boundaryLimit;
+        if (position.x > boundaryLimit) newX = boundaryLimit;
+        if (position.y < -boundaryLimit) newY = -boundaryLimit;
+        if (position.y > boundaryLimit) newY = boundaryLimit;
+        
+        if (newX !== position.x || newY !== position.y) {
+          network.moveTo({ position: { x: newX, y: newY } });
+        }
+      });
+
+      // Initial fit
+      setTimeout(() => {
+        network.fit({
+          animation: {
+            duration: 1000,
+            easingFunction: 'easeInOutQuad'
+          }
+        });
+      }, 100);
     }
 
     function getLevel(user, tree, roots) {
