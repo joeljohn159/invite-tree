@@ -17,6 +17,93 @@
       background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
       min-height: 100vh;
       padding: 20px;
+      overflow-x: hidden;
+    }
+    
+    /* Loading Animation */
+    .loading-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+      animation: fadeOut 0.8s ease-in-out 2.5s forwards;
+    }
+    
+    @keyframes fadeOut {
+      to {
+        opacity: 0;
+        visibility: hidden;
+      }
+    }
+    
+    .loading-content {
+      text-align: center;
+      color: white;
+    }
+    
+    .loading-icon {
+      font-size: 80px;
+      animation: bounce 1s ease-in-out infinite;
+      margin-bottom: 20px;
+    }
+    
+    @keyframes bounce {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-20px); }
+    }
+    
+    .loading-text {
+      font-size: 2em;
+      font-weight: 700;
+      margin-bottom: 10px;
+      animation: pulse 1.5s ease-in-out infinite;
+    }
+    
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.6; }
+    }
+    
+    .loading-subtext {
+      font-size: 1.1em;
+      opacity: 0.9;
+    }
+    
+    .loading-dots {
+      display: inline-block;
+    }
+    
+    .loading-dots span {
+      animation: dotPulse 1.4s infinite;
+      opacity: 0;
+    }
+    
+    .loading-dots span:nth-child(1) { animation-delay: 0s; }
+    .loading-dots span:nth-child(2) { animation-delay: 0.2s; }
+    .loading-dots span:nth-child(3) { animation-delay: 0.4s; }
+    
+    @keyframes dotPulse {
+      0%, 60%, 100% { opacity: 0; }
+      30% { opacity: 1; }
+    }
+    
+    /* Page content fade in */
+    .page-content {
+      opacity: 0;
+      animation: fadeIn 1s ease-in-out 2.8s forwards;
+    }
+    
+    @keyframes fadeIn {
+      to {
+        opacity: 1;
+      }
     }
     
     .header {
@@ -264,6 +351,19 @@
   </style>
 </head>
 <body>
+  <!-- Loading Animation -->
+  <div class="loading-overlay">
+    <div class="loading-content">
+      <div class="loading-icon">📚</div>
+      <div class="loading-text">Study Hub</div>
+      <div class="loading-subtext">
+        Loading your community tree<span class="loading-dots"><span>.</span><span>.</span><span>.</span></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Page Content -->
+  <div class="page-content">
   <div class="header">
     <div class="logo-section">
       <div class="logo">📚</div>
@@ -329,23 +429,91 @@
   <div class="footer">
     Built with ❤️ for Study Hub Community
   </div>
+  </div>
+  <!-- End Page Content -->
 
   <script type="text/javascript">
-    const inviteData = [
-      ['A', 'B'],
-      ['A', 'C'],
-      ['B', 'D'],
-      ['B', 'E'],
-      ['C', 'F'],
-      ['C', 'G'],
-      ['E', 'H'],
-      ['E', 'I'],
-      ['F', 'J'],
-      ['X', 'Y']
+    // Google Sheet CSV Export Link
+    const SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTufzem3vQrgBLdQZjqOwqybt6OrT8NLt_I4ec5BMx2I_RzXHN0UiSb6LSbrgHSQ3CsTuWZyzW8D2U1/pub?output=csv';
+    
+    // For testing, we'll use sample data if no sheet URL is provided
+    const SAMPLE_DATA = [
+      ['DIRO', 'JOEL'],
+      ['DIRO', 'LYNX'],
+      ['DIRO', 'ACCII'],
+      ['JOEL', 'MAYA'],
+      ['JOEL', 'RIKO'],
+      ['JOEL', 'SAGE'],
+      ['LYNX', 'PIXEL'],
+      ['LYNX', 'NOVA'],
+      ['ACCII', 'ZARA'],
+      ['ACCII', 'FINN'],
+      ['ACCII', 'ECHO'],
+      ['MAYA', 'CRUZ'],
+      ['MAYA', 'BLAKE'],
+      ['RIKO', 'STORM'],
+      ['SAGE', 'RIVER'],
+      ['SAGE', 'JADE'],
+      ['PIXEL', 'ATLAS'],
+      ['NOVA', 'PHOENIX'],
+      ['NOVA', 'KAI'],
+      ['ZARA', 'LUNA'],
+      ['FINN', 'ONYX'],
+      ['FINN', 'REED'],
+      ['ECHO', 'SKY'],
+      ['CRUZ', 'MILO'],
+      ['BLAKE', 'ASH'],
+      ['STORM', 'WREN'],
+      ['RIVER', 'SAGE2'],
+      ['ATLAS', 'QUINN'],
+      ['PHOENIX', 'EMBER'],
+      ['KAI', 'STAR'],
+      ['LUNA', 'CLOUD'],
+      ['ONYX', 'DRIFT'],
+      ['REED', 'MOSS'],
+      ['WHATEVER', 'VIBE'],
+      ['WHATEVER', 'CHILL'],
+      ['VIBE', 'MOOD'],
+      ['CHILL', 'FLEX']
     ];
 
     let network;
     let currentLayout = 'hierarchical';
+    let inviteData = [];
+
+    // Fetch data from Google Sheet
+    async function fetchSheetData() {
+      if (SHEET_URL === 'YOUR_GOOGLE_SHEET_CSV_LINK_HERE') {
+        // Use sample data if no sheet URL provided
+        inviteData = SAMPLE_DATA;
+        return inviteData;
+      }
+
+      try {
+        const response = await fetch(SHEET_URL);
+        const text = await response.text();
+        
+        // Parse CSV
+        const rows = text.trim().split('\n');
+        const data = [];
+        
+        // Skip header row and parse data
+        for (let i = 1; i < rows.length; i++) {
+          const row = rows[i].split(',').map(cell => cell.trim().replace(/['"]/g, ''));
+          if (row[0] && row[1]) {
+            data.push([row[0], row[1]]);
+          }
+        }
+        
+        inviteData = data;
+        return inviteData;
+      } catch (error) {
+        console.error('Error fetching sheet data:', error);
+        // Fallback to sample data
+        inviteData = SAMPLE_DATA;
+        return inviteData;
+      }
+    }
 
     function buildInviteTree() {
       const tree = {};
@@ -387,7 +555,8 @@
       return { tree, totals, root, roots, allUsers };
     }
 
-    function drawNetwork() {
+    async function drawNetwork() {
+      await fetchSheetData();
       const { tree, totals, roots, allUsers } = buildInviteTree();
 
       const nodes = [];
@@ -527,15 +696,27 @@
         }
       });
 
-      // Initial fit
+      // Initial fit with zoom animation
       setTimeout(() => {
         network.fit({
           animation: {
-            duration: 1000,
+            duration: 1500,
             easingFunction: 'easeInOutQuad'
           }
         });
-      }, 100);
+        
+        // Zoom in slightly after fit
+        setTimeout(() => {
+          const currentScale = network.getScale();
+          network.moveTo({
+            scale: currentScale * 1.2,
+            animation: {
+              duration: 1200,
+              easingFunction: 'easeInOutCubic'
+            }
+          });
+        }, 1600);
+      }, 3000);
     }
 
     function getLevel(user, tree, roots) {
@@ -556,7 +737,11 @@
       });
       event.target.classList.add('active');
       
-      drawNetwork();
+      // Initial load
+    drawNetwork();
+    
+    // Auto-refresh every 30 seconds to check for updates
+    setInterval(drawNetwork, 30000);
     }
 
     function searchMember() {
